@@ -5,12 +5,12 @@ import (
 	"log"
 	"net"
 	"strconv"
-
-	"golang.org/x/net/dns/dnsmessage"
+	"time"
 
 	rpclog "github.com/dermesser/clusterrpc/log"
 	"github.com/dermesser/clusterrpc/securitymanager"
 	"github.com/dermesser/clusterrpc/server"
+	"golang.org/x/net/dns/dnsmessage"
 )
 
 func extractQueryHost(pkg []byte) (string, error) {
@@ -43,6 +43,7 @@ type request struct {
 type serializer struct {
 	upstream string
 	conn     *net.UDPConn
+	n        int
 
 	reqs chan request
 }
@@ -71,7 +72,7 @@ func (s *serializer) run() {
 			respch <- nil
 			continue
 		}
-		log.Print("Querying:", hosts)
+		log.Println("Serializer", s.n, "querying:", hosts)
 
 		sz, err := s.conn.Write(pkg)
 		if err != nil {
@@ -83,6 +84,7 @@ func (s *serializer) run() {
 			log.Println("Warning: Wrote only", sz, "of", len(pkg), "bytes!")
 		}
 		dst := make([]byte, 1500)
+		s.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
 		sz, err = s.conn.Read(dst)
 		if err != nil {
 			log.Print(err)
@@ -94,15 +96,17 @@ func (s *serializer) run() {
 }
 
 type resolver struct {
-	s *serializer
+	reqs chan request
+	ch   chan []byte
 }
 
 func (r *resolver) handle(c *server.Context) {
 	pkg := c.GetInput()
-
-	ch := make(chan []byte)
-	r.s.reqs <- request{pkg, ch}
-	resp := <-ch
+	if r.ch == nil {
+		r.ch = make(chan []byte)
+	}
+	r.reqs <- request{pkg, r.ch}
+	resp := <-r.ch
 	if resp == nil {
 		c.Fail("Lookup didn't succeed")
 		return
@@ -146,9 +150,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	s := &serializer{upstream: *upstream, reqs: make(chan request)}
-	go s.run()
-	r := &resolver{s: s}
+	const numSerializers = 10
+	reqs := make(chan request)
+	for i := 0; i < numSerializers; i++ {
+		s := &serializer{upstream: *upstream, reqs: reqs, n: i}
+		go s.run()
+	}
+	r := &resolver{reqs: reqs}
 	srv.RegisterHandler("DNSOverRPC", "Resolve", r.handle)
 
 	log.Println(srv.Start())
