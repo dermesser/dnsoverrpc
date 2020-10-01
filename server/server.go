@@ -124,6 +124,7 @@ func main() {
 
 	addr := flag.String("addr", "127.0.0.1:5555", "Listen address for RPC server")
 	upstream := flag.String("upstream", "127.0.0.1:53", "Upstream resolver address")
+	numSerializers := flag.Int("threads", 20, "Number of parallel requests to be handled")
 	pubkeyfile := flag.String("pubkeyfile", "", "Public key file for RPC encryption")
 	privkeyfile := flag.String("privkeyfile", "", "Private key file for RPC encryption")
 	flag.Parse()
@@ -154,9 +155,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	const numSerializers = 10
 	reqs := make(chan request)
-	for i := 0; i < numSerializers; i++ {
+	for i := 0; i < *numSerializers; i++ {
 		s := &serializer{upstream: *upstream, reqs: reqs, n: i}
 		go s.run()
 	}

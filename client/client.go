@@ -81,6 +81,7 @@ func main() {
 	rpclog.SetLoglevel(rpclog.LOGLEVEL_INFO)
 
 	addr := flag.String("addr", "127.0.0.1:5353", "Listen address for DNS stub")
+	numClients := flag.Int("threads", 20, "How many parallel requests can be served")
 	serverAddr := flag.String("server", "127.0.0.1:53", "DNSOverRPC server address")
 	pubkeyfile := flag.String("pubkeyfile", "", "Public key file of the server for RPC encryption")
 	flag.Parse()
@@ -114,9 +115,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	const numClients = 10
-
-	for i := 0; i < numClients; i++ {
+	for i := 0; i < *numClients; i++ {
 		peer := client.Peer(host, uint(iport))
 		ch, err := client.NewChannelAndConnect(peer, sm)
 		if err != nil {
@@ -124,7 +123,7 @@ func main() {
 		}
 		cl := client.New(fmt.Sprintf("Resolver%d", i), ch)
 		dc := dnsclient{rpccl: &cl, listener: uc, n: i}
-		if i < numClients-1 {
+		if i < *numClients-1 {
 			go dc.run()
 		} else {
 			dc.run()
