@@ -2,15 +2,15 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"strconv"
 
-	"golang.org/x/net/dns/dnsmessage"
-
 	"github.com/dermesser/clusterrpc/client"
 	rpclog "github.com/dermesser/clusterrpc/log"
 	"github.com/dermesser/clusterrpc/securitymanager"
+	"golang.org/x/net/dns/dnsmessage"
 )
 
 func extractQueryHost(pkg []byte) (string, error) {
@@ -36,10 +36,12 @@ func extractQueryHost(pkg []byte) (string, error) {
 type dnsclient struct {
 	rpccl    *client.Client
 	listener *net.UDPConn
+	n        int
 }
 
 func (dc *dnsclient) run() {
 	pkg := make([]byte, 1500)
+	log.Println("Resolver", dc.n, "ready")
 
 	for {
 		sz, from, err := dc.listener.ReadFrom(pkg)
@@ -47,14 +49,13 @@ func (dc *dnsclient) run() {
 			log.Print(err)
 			continue
 		}
-		log.Println("Received", sz, "bytes from", from)
 
 		hosts, err := extractQueryHost(pkg[0:sz])
 		if err != nil {
 			log.Print(err)
 			continue
 		}
-		log.Print(hosts)
+		log.Println("Resolver", dc.n, "resolving", hosts)
 
 		resp, err := dc.rpccl.Request(pkg[0:sz], "DNSOverRPC", "Resolve", nil)
 		if err != nil {
@@ -102,13 +103,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	peer := client.Peer(host, uint(iport))
-	ch, err := client.NewChannelAndConnect(peer, sm)
-	if err != nil {
-		log.Fatal(err)
-	}
-	cl := client.New("Main", ch)
-
 	ua, err := net.ResolveUDPAddr("udp", *addr)
 	if err != nil {
 		log.Fatal(err)
@@ -117,6 +111,21 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dc := dnsclient{rpccl: &cl, listener: uc}
-	dc.run()
+
+	const numClients = 10
+
+	for i := 0; i < numClients; i++ {
+		peer := client.Peer(host, uint(iport))
+		ch, err := client.NewChannelAndConnect(peer, sm)
+		if err != nil {
+			log.Fatal(err)
+		}
+		cl := client.New(fmt.Sprintf("Resolver%d", i), ch)
+		dc := dnsclient{rpccl: &cl, listener: uc, n: i}
+		if i < numClients-1 {
+			go dc.run()
+		} else {
+			dc.run()
+		}
+	}
 }
