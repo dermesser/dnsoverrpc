@@ -1,0 +1,7 @@
+The client acts as a DNS stub, wraps DNS requests into RPC requests. 
+
+Run `client --help` for an overview of its options.
+
+To encrypt requests, generate keys using `crpc-keygen` from the clusterrpc
+repository (https://github.com/dermesser/clusterrpc). Supply the public key to the client
+using the `--pubkeyfile` option.

@@ -1,0 +1,9 @@
+The server receives RPC requests from the client(s), unwraps the DNS requests,
+and forwards them to a qualified resolver (such as 8.8.8.8 or your own).
+
+Use the `--help` option to see an overview of functionality.
+
+To encrypt requests, generate keys using `crpc-keygen` from the clusterrpc
+repository (https://github.com/dermesser/clusterrpc). Supply the public key to
+the client using the `--pubkeyfile` option, and both keys using the
+`--privkeyfile`/`--pubkeyfile` options.
