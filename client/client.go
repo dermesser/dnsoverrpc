@@ -78,16 +78,19 @@ func main() {
 	rpclog.SetLoglevel(rpclog.LOGLEVEL_INFO)
 
 	addr := flag.String("addr", "127.0.0.1:5353", "Listen address for DNS stub")
-	serverAddr := flag.String("server", "127.0.0.1:53", "Upstream resolver address")
-	pubkeyfile := flag.String("pubkeyfile", "", "Public key file for RPC encryption")
-	privkeyfile := flag.String("privkeyfile", "", "Private key file for RPC encryption")
+	serverAddr := flag.String("server", "127.0.0.1:53", "DNSOverRPC server address")
+	pubkeyfile := flag.String("pubkeyfile", "", "Public key file of the server for RPC encryption")
 	flag.Parse()
 
 	sm := securitymanager.NewClientSecurityManager()
-	sm.LoadKeys(*pubkeyfile, *privkeyfile)
 
-	if *pubkeyfile == "" || *privkeyfile == "" {
+	if *pubkeyfile == "" {
 		sm = nil
+	} else {
+		err := sm.LoadServerPubkey(*pubkeyfile)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	host, port, err := net.SplitHostPort(*serverAddr)

@@ -121,10 +121,17 @@ func main() {
 	flag.Parse()
 
 	sm := securitymanager.NewServerSecurityManager()
-	sm.LoadKeys(*pubkeyfile, *privkeyfile)
 	if *pubkeyfile == "" || *privkeyfile == "" {
 		sm = nil
+		log.Print("null policy")
+	} else {
+		err := sm.LoadKeys(*pubkeyfile, *privkeyfile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Print("CURVE policy")
 	}
+	sm.ResetBlackWhiteLists()
 
 	host, port, err := net.SplitHostPort(*addr)
 	if err != nil {
@@ -134,7 +141,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	srv, err := server.NewServer(host, uint(iport), 2, nil)
+	srv, err := server.NewServer(host, uint(iport), 2, sm)
 	if err != nil {
 		log.Fatal(err)
 	}
