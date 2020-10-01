@@ -1,5 +1,3 @@
-github.com/dermesser/clusterrpc v0.1.0 h1:aLqhyuzHYCJWlC6AgVJOPTX9JLUcM6LjWxlE1v4XEYU=
-github.com/dermesser/clusterrpc v0.1.0/go.mod h1:fTvk9LKIf++inkSQusY9Z4WYwATKeTsvzcs/XxG7ACw=
 github.com/dermesser/clusterrpc v0.1.1 h1:/WjD641Ni8WFNSnHTbazR0IY/6lWSCFf8Ub3GbqxqVM=
 github.com/dermesser/clusterrpc v0.1.1/go.mod h1:fTvk9LKIf++inkSQusY9Z4WYwATKeTsvzcs/XxG7ACw=
 github.com/gogo/protobuf v1.3.1 h1:DqDEcV5aeaTmdFBePNpYsp3FlcVH/2ISVVM9Qf8PSls=

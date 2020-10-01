@@ -13,6 +13,8 @@ import (
 	"golang.org/x/net/dns/dnsmessage"
 )
 
+const MAX_DNS_PACKET_SIZE = 65535
+
 func extractQueryHost(pkg []byte) (string, error) {
 	p := dnsmessage.Parser{}
 	_, err := p.Start(pkg)
@@ -40,7 +42,7 @@ type dnsclient struct {
 }
 
 func (dc *dnsclient) run() {
-	pkg := make([]byte, 1500)
+	pkg := make([]byte, MAX_DNS_PACKET_SIZE)
 	log.Println("Resolver", dc.n, "ready")
 
 	for {

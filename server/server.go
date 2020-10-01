@@ -13,6 +13,8 @@ import (
 	"golang.org/x/net/dns/dnsmessage"
 )
 
+const MAX_DNS_PACKET_SIZE = 65535
+
 func extractQueryHost(pkg []byte) (string, error) {
 	p := dnsmessage.Parser{}
 	_, err := p.Start(pkg)
@@ -61,6 +63,7 @@ func (s *serializer) run() {
 		}
 		s.conn = conn
 	}
+	buf := make([]byte, MAX_DNS_PACKET_SIZE)
 
 	for req := range s.reqs {
 		pkg := req.pkg
@@ -83,15 +86,16 @@ func (s *serializer) run() {
 		if sz != len(pkg) {
 			log.Println("Warning: Wrote only", sz, "of", len(pkg), "bytes!")
 		}
-		dst := make([]byte, 1500)
 		s.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
-		sz, err = s.conn.Read(dst)
+		sz, err = s.conn.Read(buf)
 		if err != nil {
 			log.Print(err)
 			respch <- nil
 			continue
 		}
-		respch <- dst[0:sz]
+		result := make([]byte, sz)
+		copy(result, buf[0:sz])
+		respch <- result
 	}
 }
 
